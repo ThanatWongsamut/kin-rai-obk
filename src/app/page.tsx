@@ -77,7 +77,7 @@ export default function Home() {
       : restaurants.filter((r) => selectedPrices.includes(r.priceRange)).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0c0c1d] via-[#12122a] to-[#1a1a2e] text-white">
+    <div className="min-h-dvh bg-gradient-to-b from-[#0c0c1d] via-[#12122a] to-[#1a1a2e] text-white">
       {/* Header */}
       <header className="pt-8 pb-2 text-center px-4 relative">
         {/* Language Toggle */}
