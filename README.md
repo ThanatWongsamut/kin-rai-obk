@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# กินไรดี? @ OBK (Kin Rai Dee at One Bangkok)
+
+A fun spinning wheel app to help you decide where to eat at [One Bangkok](https://www.onebangkok.com/).
+
+## Features
+
+- **62 restaurants** from Parade and The Storeys zones
+- **Spinning wheel** with tick sound effects and smooth deceleration
+- **Category filter** — Japanese, Korean, Thai, Western, Chinese, Coffee & Cafe, Desserts & Bakery (multi-select)
+- **Price range filter** — $, $$, $$$, $$$$ (multi-select, cross-filtered with categories)
+- **Bilingual UI** — Thai / English toggle
+- **Result card** with restaurant image, cuisine, price, building & floor
+- Built with Next.js, TypeScript, Tailwind CSS, and Kanit font
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Data Sources
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Restaurant data sourced from:
+- [One Bangkok Directory API](https://www.onebangkok.com/content/onebangkok_v2/en/directory/jcr:content/root/container/directory.model.json)
+- [One Bangkok Restaurant Blog](https://www.onebangkok.com/th/blog/restaurants-at-one-bangkok/)
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js](https://nextjs.org) (App Router)
+- TypeScript
+- Tailwind CSS v4
+- HTML5 Canvas (spinning wheel)
+- Web Audio API (tick sounds)
+- [Kanit](https://fonts.google.com/specimen/Kanit) font (Thai + Latin)
