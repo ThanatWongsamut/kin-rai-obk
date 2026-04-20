@@ -1,65 +1,261 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
+import SpinWheel from "@/components/SpinWheel";
+import {
+  restaurants,
+  CATEGORIES,
+  PRICE_LABELS,
+  type Restaurant,
+  type Category,
+  type PriceRange,
+} from "@/data/restaurants";
+import { t, CATEGORY_LABELS, PRICE_DESC, type Lang } from "@/i18n";
+
+const PRICE_TIERS: PriceRange[] = [1, 2, 3, 4];
 
 export default function Home() {
+  const [lang, setLang] = useState<Lang>("th");
+  const [selectedCats, setSelectedCats] = useState<Category[]>([]);
+  const [selectedPrices, setSelectedPrices] = useState<PriceRange[]>([]);
+  const [result, setResult] = useState<Restaurant | null>(null);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const toggleCategory = (cat: Category) => {
+    setSelectedCats((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const togglePrice = (price: PriceRange) => {
+    setSelectedPrices((prev) =>
+      prev.includes(price) ? prev.filter((p) => p !== price) : [...prev, price]
+    );
+  };
+
+  const filtered = useMemo(
+    () =>
+      restaurants.filter((r) => {
+        const catOk =
+          selectedCats.length === 0 || selectedCats.includes(r.category);
+        const priceOk =
+          selectedPrices.length === 0 || selectedPrices.includes(r.priceRange);
+        return catOk && priceOk;
+      }),
+    [selectedCats, selectedPrices]
+  );
+
+  const getCatCount = (cat: Category) =>
+    restaurants.filter(
+      (r) =>
+        r.category === cat &&
+        (selectedPrices.length === 0 || selectedPrices.includes(r.priceRange))
+    ).length;
+
+  const getPriceCount = (price: PriceRange) =>
+    restaurants.filter(
+      (r) =>
+        r.priceRange === price &&
+        (selectedCats.length === 0 || selectedCats.includes(r.category))
+    ).length;
+
+  const handleResult = (r: Restaurant) => {
+    setImgError(false);
+    setResult(r);
+  };
+
+  const filterKey = `${[...selectedCats].sort().join(",")}-${[...selectedPrices].sort().join(",")}`;
+
+  const allCatCount =
+    selectedPrices.length === 0
+      ? restaurants.length
+      : restaurants.filter((r) => selectedPrices.includes(r.priceRange)).length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-gradient-to-b from-[#0c0c1d] via-[#12122a] to-[#1a1a2e] text-white">
+      {/* Header */}
+      <header className="pt-8 pb-2 text-center px-4 relative">
+        {/* Language Toggle */}
+        <button
+          onClick={() => setLang((l) => (l === "th" ? "en" : "th"))}
+          className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all cursor-pointer border border-white/20"
+        >
+          {lang === "th" ? "EN" : "TH"}
+        </button>
+
+        <h1 className="text-4xl sm:text-5xl font-bold">
+          <span className="text-amber-400">{t("title", lang)}</span>{" "}
+          <span className="text-white/80">@ OBK</span>
+        </h1>
+        <p className="mt-2 text-gray-400 text-sm sm:text-base">
+          {t("subtitle", lang)}
+        </p>
+      </header>
+
+      {/* Filters */}
+      <div className="px-4 pt-3 pb-1 max-w-2xl mx-auto space-y-3">
+        {/* Category Filter */}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-medium">
+            {t("categoryLabel", lang)}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <FilterPill
+              label={`${t("all", lang)} (${allCatCount})`}
+              active={selectedCats.length === 0}
+              disabled={isSpinning}
+              onClick={() => setSelectedCats([])}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {CATEGORIES.map((cat) => (
+              <FilterPill
+                key={cat}
+                label={`${CATEGORY_LABELS[cat][lang]} (${getCatCount(cat)})`}
+                active={selectedCats.includes(cat)}
+                disabled={isSpinning}
+                onClick={() => toggleCategory(cat)}
+              />
+            ))}
+          </div>
         </div>
+
+        {/* Price Filter */}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-medium">
+            {t("priceLabel", lang)}
+          </p>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <FilterPill
+              label={t("allPrices", lang)}
+              active={selectedPrices.length === 0}
+              disabled={isSpinning}
+              onClick={() => setSelectedPrices([])}
+            />
+            {PRICE_TIERS.map((p) => (
+              <FilterPill
+                key={p}
+                label={`${PRICE_LABELS[p]} (${getPriceCount(p)})`}
+                active={selectedPrices.includes(p)}
+                disabled={isSpinning}
+                onClick={() => togglePrice(p)}
+                title={PRICE_DESC[p][lang]}
+              />
+            ))}
+          </div>
+        </div>
+
+        <p className="text-center text-gray-500 text-xs">
+          {filtered.length} {t("wheelCount", lang)}
+        </p>
+      </div>
+
+      {/* Wheel */}
+      <main className="px-4 py-3">
+        <SpinWheel
+          key={filterKey}
+          restaurants={filtered}
+          onResult={handleResult}
+          onSpinningChange={setIsSpinning}
+          lang={lang}
+        />
       </main>
+
+      {/* Result Modal */}
+      {result && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn p-4"
+          onClick={() => setResult(null)}
+        >
+          <div
+            className="bg-[#1a1a2e] border border-amber-500/30 rounded-2xl max-w-sm w-full overflow-hidden animate-slideUp shadow-2xl shadow-amber-500/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image */}
+            {result.image && !imgError ? (
+              <img
+                src={result.image}
+                alt={result.name}
+                className="w-full h-52 object-cover"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-40 bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center">
+                <span className="text-7xl font-bold text-white/30">
+                  {result.name[0]}
+                </span>
+              </div>
+            )}
+
+            {/* Info */}
+            <div className="p-6">
+              <p className="text-amber-400 text-sm font-medium uppercase tracking-wider mb-1">
+                {t("resultHeading", lang)}
+              </p>
+              <h2 className="text-2xl font-bold text-white mb-1">
+                {result.name}
+              </h2>
+              <p className="text-gray-400 text-sm">{result.cuisine}</p>
+
+              <div className="mt-3 flex items-center gap-3">
+                <span className="text-amber-400 font-bold text-lg">
+                  {PRICE_LABELS[result.priceRange]}
+                </span>
+                <span className="text-gray-500 text-xs">
+                  {PRICE_DESC[result.priceRange][lang]}
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-start gap-3 text-gray-300 text-sm bg-white/5 rounded-xl p-3">
+                <span className="text-lg leading-none mt-0.5">📍</span>
+                <div>
+                  <p className="font-medium text-white">{result.building}</p>
+                  <p className="text-gray-400">{result.floor}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setResult(null)}
+                className="mt-5 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                {t("spinAgain", lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function FilterPill({
+  label,
+  active,
+  disabled,
+  onClick,
+  title,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      onClick={() => !disabled && onClick()}
+      disabled={disabled}
+      title={title}
+      className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+        active
+          ? "bg-amber-500 text-black"
+          : "bg-white/10 text-gray-300 hover:bg-white/20"
+      } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    >
+      {label}
+    </button>
   );
 }
