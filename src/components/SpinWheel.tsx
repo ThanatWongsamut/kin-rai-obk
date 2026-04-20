@@ -10,6 +10,7 @@ const COLORS = [
 ];
 
 const SIZE = 600;
+const MIN_FLICK_VELOCITY = 2; // radians/sec to trigger spin
 
 interface Props {
   restaurants: Restaurant[];
@@ -24,6 +25,18 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
   const isSpinningRef = useRef(false);
   const frameRef = useRef(0);
   const [spinning, setSpinning] = useState(false);
+  const [dragging, setDragging] = useState(false);
+
+  // Drag state
+  const dragRef = useRef({
+    active: false,
+    offsetAngle: 0,
+    lastAngle: 0,
+    lastTime: 0,
+    velocity: 0,
+  });
+
+  // ── Drawing ─────────────────────────────────────────
 
   const draw = useCallback(
     (items: Restaurant[], rotation: number) => {
@@ -70,7 +83,6 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
         const start = -Math.PI / 2 + i * segAngle;
         const end = start + segAngle;
 
-        // Slice
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, start, end);
@@ -81,7 +93,6 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Text
         ctx.save();
         ctx.rotate(start + segAngle / 2);
         ctx.font = `bold ${fontSize}px Kanit, sans-serif`;
@@ -113,13 +124,12 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Hub text
       ctx.fillStyle = "#f59e0b";
       ctx.font = "bold 11px Kanit, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("OBK", center, center + 4);
 
-      // Pointer triangle (top)
+      // Pointer
       ctx.beginPath();
       ctx.moveTo(center, 10);
       ctx.lineTo(center - 14, -12);
@@ -134,114 +144,200 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
     [lang]
   );
 
-  // Draw on mount & when restaurants change
+  // ── Spin animation (shared by button & drag) ───────
+
+  const spinInternal = useCallback(
+    (extraSpinCount: number, duration: number) => {
+      if (isSpinningRef.current || restaurants.length === 0) return;
+
+      isSpinningRef.current = true;
+      setSpinning(true);
+      onSpinningChange?.(true);
+
+      const items = restaurants;
+      const n = items.length;
+      const segAngle = (2 * Math.PI) / n;
+
+      const winner = Math.floor(Math.random() * n);
+      const jitter = (Math.random() - 0.5) * segAngle * 0.5;
+
+      const currentRot = rotationRef.current;
+      const currentNorm = ((currentRot % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const targetNorm =
+        ((2 * Math.PI - (winner * segAngle + segAngle / 2 + jitter)) % (2 * Math.PI) + 2 * Math.PI) %
+        (2 * Math.PI);
+      let diff = ((targetNorm - currentNorm) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      if (diff < segAngle) diff += 2 * Math.PI;
+
+      const extraSpins = extraSpinCount * 2 * Math.PI;
+      const targetRot = currentRot + diff + extraSpins;
+      const startRot = currentRot;
+      const startTime = performance.now();
+
+      let audioCtx: AudioContext | null = null;
+      try { audioCtx = new AudioContext(); } catch { /* no audio */ }
+      let lastSeg = -1;
+
+      function tick() {
+        if (!audioCtx) return;
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.frequency.value = 500 + Math.random() * 400;
+          osc.type = "sine";
+          gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.03);
+        } catch { /* skip */ }
+      }
+
+      function animate(time: number) {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 4);
+
+        const currentAngle = startRot + (targetRot - startRot) * eased;
+        rotationRef.current = currentAngle;
+        draw(items, currentAngle);
+
+        const norm = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const seg = Math.floor(((2 * Math.PI - norm) % (2 * Math.PI)) / segAngle) % n;
+        if (seg !== lastSeg) {
+          lastSeg = seg;
+          if (progress < 0.92) tick();
+        }
+
+        if (progress < 1) {
+          frameRef.current = requestAnimationFrame(animate);
+        } else {
+          isSpinningRef.current = false;
+          setSpinning(false);
+          onSpinningChange?.(false);
+          audioCtx?.close().catch(() => {});
+          onResult(items[winner]);
+        }
+      }
+
+      frameRef.current = requestAnimationFrame(animate);
+    },
+    [restaurants, draw, onResult, onSpinningChange]
+  );
+
+  const spin = useCallback(() => {
+    spinInternal(6 + Math.floor(Math.random() * 4), 4500 + Math.random() * 2000);
+  }, [spinInternal]);
+
+  // ── Drag-to-spin ───────────────────────────────────
+
+  function getAngle(clientX: number, clientY: number): number {
+    const canvas = canvasRef.current;
+    if (!canvas) return 0;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
+    return Math.atan2(y, x);
+  }
+
+  function onDragStart(clientX: number, clientY: number) {
+    if (isSpinningRef.current || restaurants.length === 0) return;
+    const angle = getAngle(clientX, clientY);
+    dragRef.current = {
+      active: true,
+      offsetAngle: angle - rotationRef.current,
+      lastAngle: angle,
+      lastTime: performance.now(),
+      velocity: 0,
+    };
+    setDragging(true);
+  }
+
+  function onDragMove(clientX: number, clientY: number) {
+    const d = dragRef.current;
+    if (!d.active) return;
+
+    const angle = getAngle(clientX, clientY);
+    const now = performance.now();
+    const dt = now - d.lastTime;
+
+    if (dt > 0) {
+      let dAngle = angle - d.lastAngle;
+      if (dAngle > Math.PI) dAngle -= 2 * Math.PI;
+      if (dAngle < -Math.PI) dAngle += 2 * Math.PI;
+      const instant = dAngle / (dt / 1000);
+      d.velocity = d.velocity * 0.3 + instant * 0.7;
+    }
+
+    d.lastAngle = angle;
+    d.lastTime = now;
+
+    rotationRef.current = angle - d.offsetAngle;
+    draw(restaurants, rotationRef.current);
+  }
+
+  function onDragEnd() {
+    const d = dragRef.current;
+    if (!d.active) return;
+    d.active = false;
+    setDragging(false);
+
+    const absV = Math.abs(d.velocity);
+    if (absV > MIN_FLICK_VELOCITY) {
+      const spins = Math.min(10, Math.max(3, Math.floor(absV / 2)));
+      const dur = Math.min(7000, Math.max(3000, spins * 700));
+      spinInternal(spins, dur);
+    }
+  }
+
+  // Mouse events on canvas
+  const handleMouseDown = (e: React.MouseEvent) => onDragStart(e.clientX, e.clientY);
+
+  // Touch events on canvas
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  // Global move/end events (so dragging works outside canvas bounds)
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => onDragMove(e.clientX, e.clientY);
+    const handleMouseUp = () => onDragEnd();
+    const handleTouchMove = (e: TouchEvent) => {
+      if (dragRef.current.active && e.touches.length === 1) {
+        e.preventDefault();
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    const handleTouchEnd = () => onDragEnd();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  });
+
+  // ── Lifecycle ──────────────────────────────────────
+
   useEffect(() => {
     rotationRef.current = 0;
     draw(restaurants, 0);
   }, [restaurants, draw]);
 
-  // Cleanup animation frame
   useEffect(() => {
     return () => cancelAnimationFrame(frameRef.current);
   }, []);
 
-  const spin = useCallback(() => {
-    if (isSpinningRef.current || restaurants.length === 0) return;
-
-    isSpinningRef.current = true;
-    setSpinning(true);
-    onSpinningChange?.(true);
-
-    const items = restaurants;
-    const n = items.length;
-    const segAngle = (2 * Math.PI) / n;
-
-    // Pick winner
-    const winner = Math.floor(Math.random() * n);
-    const jitter = (Math.random() - 0.5) * segAngle * 0.5;
-
-    // Calculate target rotation
-    const currentRot = rotationRef.current;
-    const currentNorm =
-      ((currentRot % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    const targetNorm =
-      ((2 * Math.PI - (winner * segAngle + segAngle / 2 + jitter)) %
-        (2 * Math.PI) +
-        2 * Math.PI) %
-      (2 * Math.PI);
-    let diff =
-      ((targetNorm - currentNorm) % (2 * Math.PI) + 2 * Math.PI) %
-      (2 * Math.PI);
-    if (diff < segAngle) diff += 2 * Math.PI;
-
-    const extraSpins = (6 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
-    const targetRot = currentRot + diff + extraSpins;
-    const startRot = currentRot;
-    const startTime = performance.now();
-    const duration = 4500 + Math.random() * 2000;
-
-    // Tick sound
-    let audioCtx: AudioContext | null = null;
-    try {
-      audioCtx = new AudioContext();
-    } catch {
-      /* no audio */
-    }
-    let lastSeg = -1;
-
-    function tick() {
-      if (!audioCtx) return;
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.frequency.value = 500 + Math.random() * 400;
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          audioCtx.currentTime + 0.03
-        );
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.03);
-      } catch {
-        /* skip */
-      }
-    }
-
-    function animate(time: number) {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 4);
-
-      const currentAngle = startRot + (targetRot - startRot) * eased;
-      rotationRef.current = currentAngle;
-      draw(items, currentAngle);
-
-      // Tick on segment boundary
-      const norm =
-        ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-      const seg =
-        Math.floor(((2 * Math.PI - norm) % (2 * Math.PI)) / segAngle) % n;
-      if (seg !== lastSeg) {
-        lastSeg = seg;
-        if (progress < 0.92) tick();
-      }
-
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate);
-      } else {
-        isSpinningRef.current = false;
-        setSpinning(false);
-        onSpinningChange?.(false);
-        audioCtx?.close().catch(() => {});
-        onResult(items[winner]);
-      }
-    }
-
-    frameRef.current = requestAnimationFrame(animate);
-  }, [restaurants, draw, onResult, onSpinningChange]);
+  // ── Render ─────────────────────────────────────────
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -250,7 +346,10 @@ export default function SpinWheel({ restaurants, onResult, onSpinningChange, lan
           ref={canvasRef}
           width={SIZE}
           height={SIZE}
-          className="w-full h-auto"
+          className="w-full h-auto touch-none"
+          style={{ cursor: spinning ? "not-allowed" : dragging ? "grabbing" : "grab" }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         />
       </div>
 
