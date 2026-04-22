@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const kanit = Kanit({
@@ -20,7 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${kanit.variable} antialiased`}>
-      <body className="min-h-dvh flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
