@@ -67,6 +67,7 @@ export const restaurants: Restaurant[] = [
   { id: 25, name: "Yakiniku Like", cuisine: "Solo Yakiniku", category: "Japanese", building: "Parade", floor: "B1F", priceRange: 1, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/parade-840x1005px/Yakiniku like.jpg" },
   { id: 128, name: "Tonkatsu TOKU", cuisine: "Premium Tonkatsu", category: "Japanese", building: "The Storeys", floor: "1F", priceRange: 2, image: null },
   { id: 129, name: "Tonkatsu Aoki", cuisine: "Tonkatsu", category: "Japanese", building: "The Storeys", floor: "3F", priceRange: 2, image: null },
+  { id: 136, name: "CoCo Ichibanya", cuisine: "Japanese Curry", category: "Japanese", building: "Parade", floor: "G", priceRange: 1, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/parade-840x1005px/CoCo Website Photo 1005X840 (2).jpg" },
   // ─── Korean ────────────────────────────────────────────
   { id: 26, name: "BHC Chicken", cuisine: "Korean Fried Chicken", category: "Korean", building: "Parade", floor: "3F", priceRange: 1, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/parade-840x1005px/BHC.jpg" },
   { id: 27, name: "Hasul", cuisine: "Home-style Korean", category: "Korean", building: "The Storeys", floor: "B1F", priceRange: 3, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/Hasul.jpg" },
@@ -114,7 +115,7 @@ export const restaurants: Restaurant[] = [
   { id: 64, name: "Vantage Point", cuisine: "European Buffet", category: "Western", building: "Parade", floor: "2F", priceRange: 3, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/parade-840x1005px/Vantage Point.jpg" },
   { id: 65, name: "Vessel", cuisine: "Wine Bar & Dining", category: "Western", building: "The Storeys", floor: "3F", priceRange: 3, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/Vessel.JPG" },
   { id: 66, name: "Zafran Eatery", cuisine: "Indian & Middle Eastern", category: "Western", building: "The Storeys", floor: "B1F", priceRange: 2, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/ZAFRAN EATERY.jpg" },
-  { id: 133, name: "Smith & Co.", cuisine: "Italian", category: "Western", building: "The Storeys", floor: "G", priceRange: 2, image: null },
+  { id: 133, name: "Smith & Co.", cuisine: "Italian", category: "Western", building: "The Storeys", floor: "G", priceRange: 2, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/Smith & Co..jpg" },
   { id: 134, name: "Bardo Brasserie", cuisine: "Modern French Brasserie", category: "Western", building: "The Storeys", floor: "G", priceRange: 3, image: null },
   { id: 135, name: "Wolfgang's Steakhouse", cuisine: "NYC-Style Steakhouse", category: "Western", building: "The Storeys", floor: "3F", priceRange: 4, image: null },
   // ─── Chinese ───────────────────────────────────────────
