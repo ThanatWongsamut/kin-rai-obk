@@ -12,6 +12,8 @@ const strings = {
   all: { th: "ทั้งหมด", en: "All" },
   priceLabel: { th: "ราคา", en: "Price" },
   allPrices: { th: "ทุกราคา", en: "All Prices" },
+  buildingLabel: { th: "อาคาร", en: "Building" },
+  allBuildings: { th: "ทุกอาคาร", en: "All Buildings" },
   wheelCount: { th: "ร้านบนวงล้อ", en: "restaurants on the wheel" },
   resultHeading: { th: "วันนี้ไปกิน...", en: "You should eat at..." },
   spinAgain: { th: "หมุนอีกครั้ง", en: "Spin Again" },

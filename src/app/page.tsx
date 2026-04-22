@@ -13,11 +13,14 @@ import {
 import { t, CATEGORY_LABELS, PRICE_DESC, type Lang } from "@/i18n";
 
 const PRICE_TIERS: PriceRange[] = [1, 2, 3, 4];
+const BUILDINGS = ["Parade", "The Storeys"] as const;
+type Building = (typeof BUILDINGS)[number];
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("th");
   const [selectedCats, setSelectedCats] = useState<Category[]>([]);
   const [selectedPrices, setSelectedPrices] = useState<PriceRange[]>([]);
+  const [selectedBuildings, setSelectedBuildings] = useState<Building[]>([]);
   const [result, setResult] = useState<Restaurant | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -38,43 +41,42 @@ export default function Home() {
     );
   };
 
+  const toggleBuilding = (b: Building) => {
+    setSelectedBuildings((prev) =>
+      prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]
+    );
+  };
+
+  // Shared filter helper
+  const matchesFilters = (r: Restaurant, opts?: { skipCat?: boolean; skipPrice?: boolean; skipBuilding?: boolean }) => {
+    const catOk = opts?.skipCat || selectedCats.length === 0 || selectedCats.includes(r.category);
+    const priceOk = opts?.skipPrice || selectedPrices.length === 0 || selectedPrices.includes(r.priceRange);
+    const buildingOk = opts?.skipBuilding || selectedBuildings.length === 0 || selectedBuildings.includes(r.building as Building);
+    return catOk && priceOk && buildingOk;
+  };
+
   const filtered = useMemo(
-    () =>
-      restaurants.filter((r) => {
-        const catOk =
-          selectedCats.length === 0 || selectedCats.includes(r.category);
-        const priceOk =
-          selectedPrices.length === 0 || selectedPrices.includes(r.priceRange);
-        return catOk && priceOk;
-      }),
-    [selectedCats, selectedPrices]
+    () => restaurants.filter((r) => matchesFilters(r)),
+    [selectedCats, selectedPrices, selectedBuildings]
   );
 
   const getCatCount = (cat: Category) =>
-    restaurants.filter(
-      (r) =>
-        r.category === cat &&
-        (selectedPrices.length === 0 || selectedPrices.includes(r.priceRange))
-    ).length;
+    restaurants.filter((r) => r.category === cat && matchesFilters(r, { skipCat: true })).length;
 
   const getPriceCount = (price: PriceRange) =>
-    restaurants.filter(
-      (r) =>
-        r.priceRange === price &&
-        (selectedCats.length === 0 || selectedCats.includes(r.category))
-    ).length;
+    restaurants.filter((r) => r.priceRange === price && matchesFilters(r, { skipPrice: true })).length;
+
+  const getBuildingCount = (b: Building) =>
+    restaurants.filter((r) => r.building === b && matchesFilters(r, { skipBuilding: true })).length;
 
   const handleResult = (r: Restaurant) => {
     setImgError(false);
     setResult(r);
   };
 
-  const filterKey = `${[...selectedCats].sort().join(",")}-${[...selectedPrices].sort().join(",")}`;
+  const filterKey = `${[...selectedCats].sort().join(",")}-${[...selectedPrices].sort().join(",")}-${[...selectedBuildings].sort().join(",")}`;
 
-  const allCatCount =
-    selectedPrices.length === 0
-      ? restaurants.length
-      : restaurants.filter((r) => selectedPrices.includes(r.priceRange)).length;
+  const allCatCount = restaurants.filter((r) => matchesFilters(r, { skipCat: true })).length;
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#0c0c1d] via-[#12122a] to-[#1a1a2e] text-white">
@@ -143,6 +145,30 @@ export default function Home() {
                 disabled={isSpinning}
                 onClick={() => togglePrice(p)}
                 title={PRICE_DESC[p][lang]}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Building Filter */}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-medium">
+            {t("buildingLabel", lang)}
+          </p>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <FilterPill
+              label={t("allBuildings", lang)}
+              active={selectedBuildings.length === 0}
+              disabled={isSpinning}
+              onClick={() => setSelectedBuildings([])}
+            />
+            {BUILDINGS.map((b) => (
+              <FilterPill
+                key={b}
+                label={`${b} (${getBuildingCount(b)})`}
+                active={selectedBuildings.includes(b)}
+                disabled={isSpinning}
+                onClick={() => toggleBuilding(b)}
               />
             ))}
           </div>
