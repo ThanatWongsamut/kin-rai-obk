@@ -98,7 +98,7 @@ export const restaurants: Restaurant[] = [
   { id: 51, name: "Yodcha", cuisine: "Thai Tea & Coffee", category: "Coffee & Cafe", building: "Parade", floor: "5F", priceRange: 1, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/parade-840x1005px/Yodcha-411 (1)-ปรับ-ให้เป็น-840x1005.jpeg" },
   { id: 52, name: "Zaab Eli", cuisine: "Isaan Thai", category: "Thai", building: "The Storeys", floor: "B1F", priceRange: 2, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/Zaabeli.JPG" },
   { id: 53, name: "Zaabniran", cuisine: "Khao Tom & Thai", category: "Thai", building: "The Storeys", floor: "B1F", priceRange: 3, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/OHM23358.jpg" },
-  { id: 130, name: "Samosor", cuisine: "Traditional Thai", category: "Thai", building: "The Storeys", floor: "G", priceRange: 3, image: null },
+  { id: 130, name: "Samosor", cuisine: "Traditional Thai", category: "Thai", building: "The Storeys", floor: "G", priceRange: 3, image: "https://www.onebangkok.com/content/dam/onebangkok_v2/images/retail-directory/brand-gallery-840-x1005/the-storeys-840x1005px/Samosorn.jpg" },
   { id: 131, name: "Kaeng Sod", cuisine: "Fresh Thai Curry", category: "Thai", building: "Parade", floor: "3F", priceRange: 2, image: null },
   { id: 132, name: "Look Kai Thong", cuisine: "Thai-Chinese (Michelin)", category: "Thai", building: "Parade", floor: "3F", priceRange: 3, image: null },
   // ─── Western ───────────────────────────────────────────
