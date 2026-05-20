@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import SpinWheel from "@/components/SpinWheel";
 import {
   restaurants,
@@ -10,24 +11,54 @@ import {
   type Category,
   type PriceRange,
 } from "@/data/restaurants";
-import { t, CATEGORY_LABELS, PRICE_DESC, type Lang } from "@/i18n";
+import { t, CATEGORY_LABELS, PRICE_DESC } from "@/i18n";
+import { useLang } from "@/hooks/useLang";
 
 const PRICE_TIERS: PriceRange[] = [1, 2, 3, 4];
 const BUILDINGS = ["Parade", "The Storeys"] as const;
 type Building = (typeof BUILDINGS)[number];
 
+const EXCLUDED_KEY = "obk-excluded-ids";
+
 export default function Home() {
-  const [lang, setLang] = useState<Lang>("th");
+  const [lang, setLang] = useLang();
   const [selectedCats, setSelectedCats] = useState<Category[]>([]);
   const [selectedPrices, setSelectedPrices] = useState<PriceRange[]>([]);
   const [selectedBuildings, setSelectedBuildings] = useState<Building[]>([]);
+  const [excludedIds, setExcludedIds] = useState<Set<number>>(new Set());
   const [result, setResult] = useState<Restaurant | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [imgError, setImgError] = useState(false);
 
+  // Load excluded from localStorage
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    try {
+      const raw = localStorage.getItem(EXCLUDED_KEY);
+      if (raw) setExcludedIds(new Set(JSON.parse(raw)));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Persist excluded
+  useEffect(() => {
+    try {
+      localStorage.setItem(EXCLUDED_KEY, JSON.stringify([...excludedIds]));
+    } catch {
+      /* ignore */
+    }
+  }, [excludedIds]);
+
+  const toggleExcluded = (id: number) => {
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const resetExcluded = () => setExcludedIds(new Set());
 
   const toggleCategory = (cat: Category) => {
     setSelectedCats((prev) =>
@@ -47,8 +78,9 @@ export default function Home() {
     );
   };
 
-  // Shared filter helper
+  // Shared filter helper (excluded restaurants never go on the wheel)
   const matchesFilters = (r: Restaurant, opts?: { skipCat?: boolean; skipPrice?: boolean; skipBuilding?: boolean }) => {
+    if (excludedIds.has(r.id)) return false;
     const catOk = opts?.skipCat || selectedCats.length === 0 || selectedCats.includes(r.category);
     const priceOk = opts?.skipPrice || selectedPrices.length === 0 || selectedPrices.includes(r.priceRange);
     const buildingOk = opts?.skipBuilding || selectedBuildings.length === 0 || selectedBuildings.includes(r.building as Building);
@@ -57,7 +89,7 @@ export default function Home() {
 
   const filtered = useMemo(
     () => restaurants.filter((r) => matchesFilters(r)),
-    [selectedCats, selectedPrices, selectedBuildings]
+    [selectedCats, selectedPrices, selectedBuildings, excludedIds]
   );
 
   const getCatCount = (cat: Category) =>
@@ -74,30 +106,39 @@ export default function Home() {
     setResult(r);
   };
 
-  const filterKey = `${[...selectedCats].sort().join(",")}-${[...selectedPrices].sort().join(",")}-${[...selectedBuildings].sort().join(",")}`;
+  const filterKey = `${[...selectedCats].sort().join(",")}-${[...selectedPrices].sort().join(",")}-${[...selectedBuildings].sort().join(",")}-${[...excludedIds].sort().join(",")}`;
 
   const allCatCount = restaurants.filter((r) => matchesFilters(r, { skipCat: true })).length;
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#0c0c1d] via-[#12122a] to-[#1a1a2e] text-white">
-      {/* Header */}
-      <header className="pt-8 pb-2 text-center px-4 relative">
-        {/* Language Toggle */}
+      {/* Sticky top bar */}
+      <header className="sticky top-0 z-40 bg-[#0c0c1d]/80 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between gap-2">
+        <Link
+          href="/split"
+          className="flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors cursor-pointer"
+        >
+          <span>💰</span>
+          <span className="hidden sm:inline">{t("goToSplit", lang)}</span>
+        </Link>
+
+        <h1 className="text-base sm:text-lg font-bold flex items-baseline gap-1.5 truncate">
+          <span className="text-amber-400">{t("title", lang)}</span>
+          <span className="text-white/60 text-sm">@ OBK</span>
+        </h1>
+
         <button
-          onClick={() => setLang((l) => (l === "th" ? "en" : "th"))}
-          className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-all cursor-pointer border border-white/20"
+          onClick={() => setLang(lang === "th" ? "en" : "th")}
+          className="px-3 h-9 rounded-full text-sm font-bold bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors cursor-pointer"
         >
           {lang === "th" ? "EN" : "TH"}
         </button>
-
-        <h1 className="text-4xl sm:text-5xl font-bold">
-          <span className="text-amber-400">{t("title", lang)}</span>{" "}
-          <span className="text-white/80">@ OBK</span>
-        </h1>
-        <p className="mt-2 text-gray-400 text-sm sm:text-base">
-          {t("subtitle", lang)}
-        </p>
       </header>
+
+      {/* Subtitle */}
+      <div className="text-center px-4 pt-3 pb-1">
+        <p className="text-gray-400 text-sm">{t("subtitle", lang)}</p>
+      </div>
 
       {/* Filters */}
       <div className="px-4 pt-3 pb-1 max-w-2xl mx-auto space-y-3">
@@ -174,9 +215,26 @@ export default function Home() {
           </div>
         </div>
 
-        <p className="text-center text-gray-500 text-xs">
-          {filtered.length} {t("wheelCount", lang)}
-        </p>
+        <div className="text-center text-xs text-gray-500 flex items-center justify-center gap-2 flex-wrap">
+          <span>
+            {filtered.length} {t("wheelCount", lang)}
+          </span>
+          {excludedIds.size > 0 && (
+            <>
+              <span className="text-gray-700">·</span>
+              <span>
+                {excludedIds.size} {t("excludedCount", lang)}
+              </span>
+              <button
+                onClick={resetExcluded}
+                disabled={isSpinning}
+                className="text-amber-400 hover:text-amber-300 underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t("resetExcluded", lang)}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Wheel */}
@@ -243,9 +301,21 @@ export default function Home() {
                 </div>
               </div>
 
+              <label className="mt-4 flex items-center gap-3 cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  checked={excludedIds.has(result.id)}
+                  onChange={() => toggleExcluded(result.id)}
+                  className="w-4 h-4 accent-amber-500 cursor-pointer"
+                />
+                <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                  {t("removeFromWheel", lang)}
+                </span>
+              </label>
+
               <button
                 onClick={() => setResult(null)}
-                className="mt-5 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 transition-all active:scale-[0.98] cursor-pointer"
+                className="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 transition-all active:scale-[0.98] cursor-pointer"
               >
                 {t("spinAgain", lang)}
               </button>
