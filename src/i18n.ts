@@ -69,8 +69,8 @@ export const CATEGORY_LABELS: Record<Category, Record<Lang, string>> = {
 };
 
 export const PRICE_DESC: Record<PriceRange, Record<Lang, string>> = {
-  1: { th: "ต่ำกว่า 300฿", en: "Under 300฿" },
-  2: { th: "300–800฿", en: "300–800฿" },
-  3: { th: "800–1,500฿", en: "800–1,500฿" },
-  4: { th: "1,500฿+", en: "1,500฿+" },
+  1: { th: "ต่ำกว่า 200฿", en: "Under 200฿" },
+  2: { th: "200–400฿", en: "200–400฿" },
+  3: { th: "400–1,000฿", en: "400–1,000฿" },
+  4: { th: "1,000฿+", en: "1,000฿+" },
 };
