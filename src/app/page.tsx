@@ -15,7 +15,7 @@ import { t, CATEGORY_LABELS, PRICE_DESC } from "@/i18n";
 import { useLang } from "@/hooks/useLang";
 
 const PRICE_TIERS: PriceRange[] = [1, 2, 3, 4];
-const BUILDINGS = ["Parade", "The Storeys"] as const;
+const BUILDINGS = ["Parade", "The Storeys", "Food Street", "Forum"] as const;
 type Building = (typeof BUILDINGS)[number];
 
 const EXCLUDED_KEY = "obk-excluded-ids";
